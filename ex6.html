@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestion des Produits</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <div class="container mx-auto p-4 md:p-8">
+    <header class="bg-white shadow-md rounded-lg p-6 mb-8">
+      <h1 class="text-3xl font-bold text-gray-800 mb-2">Gestion des Produits</h1>
+      <p class="text-gray-600">Système de gestion et d'analyse des produits</p>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-gray-500 text-sm font-medium">Total des Produits</h3>
+            <p id="totalProducts" class="text-2xl font-bold text-gray-800">0</p>
+          </div>
+          <div class="bg-blue-100 p-3 rounded-full">
+            <i class="fas fa-box text-blue-500"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-gray-500 text-sm font-medium">Prix Total</h3>
+            <p id="totalPrice" class="text-2xl font-bold text-gray-800">0 DH</p>
+          </div>
+          <div class="bg-green-100 p-3 rounded-full">
+            <i class="fas fa-money-bill text-green-500"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-red-500">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-gray-500 text-sm font-medium">Produits en Faible Stock</h3>
+            <p id="lowStockCount" class="text-2xl font-bold text-gray-800">0</p>
+          </div>
+          <div class="bg-red-100 p-3 rounded-full">
+            <i class="fas fa-exclamation-triangle text-red-500"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <i class="fas fa-search text-gray-400"></i>
+          </div>
+          <input type="text" id="searchQuery" placeholder="Rechercher des produits..." 
+                 class="pl-10 py-3 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+          <button id="clearSearch" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div>
+          <select id="categorySelect" class="py-3 px-4 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+            <option value="Tous">Toutes les catégories</option>
+          </select>
+        </div>
+
+        <div>
+          <select id="sortBySelect" class="py-3 px-4 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+            <option value="none">Trier par</option>
+            <option value="price">Prix</option>
+            <option value="stock">Stock</option>
+            <option value="name">Nom</option>
+          </select>
+        </div>
+      </div>
+      <div class="mt-4">
+        <button id="sortDirectionBtn" class="py-3 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all flex items-center justify-center">
+          <i class="fas fa-sort-amount-up mr-2"></i> Tri Ascendant
+        </button>
+      </div>
+    </div>
+
+    <div class="mb-8">
+      <div class="border-b border-gray-200">
+        <nav class="flex -mb-px">
+          <button id="tabProducts" class="tab-button active py-4 px-6 border-b-2 border-blue-500 font-medium text-blue-600">
+            <i class="fas fa-table mr-2"></i> Produits
+          </button>
+          <button id="tabLowStock" class="tab-button py-4 px-6 border-b-2 border-transparent font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
+            <i class="fas fa-exclamation-triangle mr-2"></i> Faible Stock
+          </button>
+          <button id="tabDashboard" class="tab-button py-4 px-6 border-b-2 border-transparent font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
+            <i class="fas fa-chart-pie mr-2"></i> Tableau de Bord
+          </button>
+        </nav>
+      </div>
+    </div>
+
+    <div id="tabContent">
+      <div id="productsTab" class="tab-content">
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+          <div class="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+            <h2 class="text-lg font-medium text-gray-800">Liste des Produits</h2>
+            <span id="productCount" class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">0 produits</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table id="productTable" class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prix</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200"></tbody>
+            </table>
+          </div>
+          <div id="noProductsMessage" class="p-8 text-center text-gray-500 hidden">
+            Aucun produit ne correspond à votre recherche
+          </div>
+          <div id="loadingIndicator" class="p-8 text-center text-gray-500">
+            <i class="fas fa-spinner fa-spin mr-2"></i> Chargement des produits...
+          </div>
+        </div>
+      </div>
+
+      <div id="lowStockTab" class="tab-content hidden">
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+          <div class="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+            <h2 class="text-lg font-medium text-gray-800">Produits en Faible Stock (<10 unités)</h2>
+            <span id="lowStockBadge" class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">0 produits</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table id="lowStockTable" class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prix</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200"></tbody>
+            </table>
+          </div>
+          <div id="noLowStockMessage" class="p-8 text-center text-gray-500 hidden">
+            Aucun produit en faible stock
+          </div>
+        </div>
+      </div>
+
+      <div id="dashboardTab" class="tab-content hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white p-4 rounded-lg shadow-md">
+            <h3 class="text-lg font-medium text-gray-800 mb-4">Répartition par Catégorie</h3>
+            <div class="h-80">
+              <canvas id="categoryChart"></canvas>
+            </div>
+          </div>
+          <div class="bg-white p-4 rounded-lg shadow-md">
+            <h3 class="text-lg font-medium text-gray-800 mb-4">Niveaux de Stock</h3>
+            <div class="h-80">
+              <canvas id="stockChart"></canvas>
+            </div>
+          </div>
+          <div class="bg-white p-4 rounded-lg shadow-md lg:col-span-2">
+            <h3 class="text-lg font-medium text-gray-800 mb-4">Prix des Produits</h3>
+            <div class="h-80">
+              <canvas id="priceChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="bg-white mt-12 py-6 border-t">
+    <div class="container mx-auto px-4 text-center text-gray-500">
+      <p>© 2023 Système de Gestion des Produits</p>
+    </div>
+  </footer>
+
+  <script>
+    const products = [
+      { name: "Ordinateur portable", price: 9990, category: "Électronique", stock: 10 },
+      { name: "Smartphone", price: 6990, category: "Électronique", stock: 15 },
+      { name: "Écouteurs sans fil", price: 1290, category: "Accessoires", stock: 25 },
+      { name: "Clavier mécanique", price: 890, category: "Accessoires", stock: 8 },
+      { name: "Moniteur 27\"", price: 2490, category: "Électronique", stock: 5 },
+      { name: "Souris gaming", price: 590, category: "Accessoires", stock: 12 },
+      { name: "Tablette", price: 3490, category: "Électronique", stock: 7 },
+      { name: "Chargeur USB-C", price: 190, category: "Accessoires", stock: 30 },
+      { name: "Disque SSD 1TB", price: 1190, category: "Composants", stock: 20 },
+      { name: "Carte graphique", price: 4990, category: "Composants", stock: 3 },
+      { name: "Processeur", price: 2990, category: "Composants", stock: 6 },
+      { name: "Mémoire RAM 16GB", price: 790, category: "Composants", stock: 15 }
+    ];
+
+    const searchQuery = document.getElementById("searchQuery");
+    const categorySelect = document.getElementById("categorySelect");
+    const sortBySelect = document.getElementById("sortBySelect");
+    const sortDirectionBtn = document.getElementById("sortDirectionBtn");
+    const clearSearchBtn = document.getElementById("clearSearch");
+    const productTable = document.getElementById("productTable");
+    const lowStockTable = document.getElementById("lowStockTable");
+    const loadingIndicator = document.getElementById("loadingIndicator");
+    const noProductsMessage = document.getElementById("noProductsMessage");
+    const noLowStockMessage = document.getElementById("noLowStockMessage");
+    const productCount = document.getElementById("productCount");
+    const lowStockBadge = document.getElementById("lowStockBadge");
+    const totalProductsEl = document.getElementById("totalProducts");
+    const totalPriceEl = document.getElementById("totalPrice");
+    const lowStockCountEl = document.getElementById("lowStockCount");
+
+    const tabButtons = document.querySelectorAll(".tab-button");
+    const tabContents = document.querySelectorAll(".tab-content");
+    const tabProducts = document.getElementById("tabProducts");
+    const tabLowStock = document.getElementById("tabLowStock");
+    const tabDashboard = document.getElementById("tabDashboard");
+    const productsTab = document.getElementById("productsTab");
+    const lowStockTab = document.getElementById("lowStockTab");
+    const dashboardTab = document.getElementById("dashboardTab");
+
+    let sortDirection = "asc";
+    let categoryChartInstance = null;
+    let stockChartInstance = null;
+    let priceChartInstance = null;
+    let currentTab = "products";
+
+    function init() {
+      const uniqueCategories = Array.from(new Set(products.map((p) => p.category)));
+      uniqueCategories.forEach(category => {
+        const option = document.createElement("option");
+        option.value = category;
+        option.textContent = category;
+        categorySelect.appendChild(option);
+      });
+
+      updateStats();
+
+      setTimeout(() => {
+        loadingIndicator.classList.add("hidden");
+        filterAndDisplayProducts();
+      }, 800);
+
+      initCharts();
+    }
+
+    function updateStats() {
+      const totalPrice = products.reduce((sum, product) => sum + product.price, 0);
+      const lowStockProducts = products.filter(product => product.stock < 10);
+      
+      totalProductsEl.textContent = products.length;
+      totalPriceEl.textContent = `${totalPrice} DH`;
+      lowStockCountEl.textContent = lowStockProducts.length;
+    }
+
+    function filterAndDisplayProducts() {
+      const query = searchQuery.value.toLowerCase();
+      const category = categorySelect.value;
+      const sortBy = sortBySelect.value;
+      
+      let filteredProducts = products.filter(product => 
+        product.name.toLowerCase().includes(query) && 
+        (category === "Tous" || product.category === category)
+      );
+      
+      if (sortBy !== "none") {
+        filteredProducts.sort((a, b) => {
+          if (sortBy === "name") {
+            return sortDirection === "asc" 
+              ? a.name.localeCompare(b.name) 
+              : b.name.localeCompare(a.name);
+          } else {
+            return sortDirection === "asc" 
+              ? a[sortBy] - b[sortBy] 
+              : b[sortBy] - a[sortBy];
+          }
+        });
+      }
+      
+      updateProductTable(filteredProducts);
+      updateLowStockTable();
+      updateCharts(filteredProducts);
+      
+      productCount.textContent = `${filteredProducts.length} produits`;
+      
+      if (filteredProducts.length === 0) {
+        noProductsMessage.classList.remove("hidden");
+      } else {
+        noProductsMessage.classList.add("hidden");
+      }
+    }
+
+    function updateProductTable(filteredProducts) {
+      const tableBody = productTable.querySelector("tbody");
+      tableBody.innerHTML = "";
+      
+      filteredProducts.forEach(product => {
+        const row = document.createElement("tr");
+        row.className = "hover:bg-gray-50";
+        
+        const stockStatus = getStockStatus(product.stock);
+        
+        row.innerHTML = `
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm font-medium text-gray-900">${product.name}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-900 font-medium">${product.price} DH</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+              ${product.category}
+            </span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm ${product.stock < 10 ? 'text-red-600 font-medium' : 'text-gray-900'}">${product.stock}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${stockStatus.bgColor} ${stockStatus.textColor}">
+              ${stockStatus.label}
+            </span>
+          </td>
+        `;
+        
+        tableBody.appendChild(row);
+      });
+    }
+
+    function updateLowStockTable() {
+      const lowStockProducts = products.filter(product => product.stock < 10);
+      const tableBody = lowStockTable.querySelector("tbody");
+      tableBody.innerHTML = "";
+      
+      lowStockBadge.textContent = `${lowStockProducts.length} produits`;
+      
+      if (lowStockProducts.length === 0) {
+        noLowStockMessage.classList.remove("hidden");
+        return;
+      } else {
+        noLowStockMessage.classList.add("hidden");
+      }
+      
+      lowStockProducts.forEach(product => {
+        const row = document.createElement("tr");
+        row.className = "hover:bg-gray-50";
+        
+        const stockStatus = getStockStatus(product.stock);
+        
+        row.innerHTML = `
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm font-medium text-gray-900">${product.name}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-900 font-medium">${product.price} DH</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+              ${product.category}
+            </span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-red-600 font-medium">${product.stock}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${stockStatus.bgColor} ${stockStatus.textColor}">
+              ${stockStatus.label}
+            </span>
+          </td>
+        `;
+        
+        tableBody.appendChild(row);
+      });
+    }
+
+    function getStockStatus(stock) {
+      if (stock <= 3) {
+        return {
+          label: "Critique",
+          bgColor: "bg-red-100",
+          textColor: "text-red-800"
+        };
+      } else if (stock < 10) {
+        return {
+          label: "Faible",
+          bgColor: "bg-yellow-100",
+          textColor: "text-yellow-800"
+        };
+      } else {
+        return {
+          label: "Normal",
+          bgColor: "bg-green-100",
+          textColor: "text-green-800"
+        };
+      }
+    }
+
+    function initCharts() {
+      const colors = {
+        blue: 'rgba(54, 162, 235, 0.8)',
+        green: 'rgba(75, 192, 192, 0.8)',
+        yellow: 'rgba(255, 206, 86, 0.8)',
+        red: 'rgba(255, 99, 132, 0.8)',
+        purple: 'rgba(153, 102, 255, 0.8)',
+        orange: 'rgba(255, 159, 64, 0.8)'
+      };
+      
+      const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+      const stockCtx = document.getElementById('stockChart').getContext('2d');
+      const priceCtx = document.getElementById('priceChart').getContext('2d');
+      
+      categoryChartInstance = new Chart(categoryCtx, {
+        type: 'pie',
+        data: {
+          labels: [],
+          datasets: [{
+            data: [],
+            backgroundColor: Object.values(colors),
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+            },
+            title: {
+              display: true,
+              text: 'Répartition des produits par catégorie'
+            }
+          }
+        }
+      });
+      
+      stockChartInstance = new Chart(stockCtx, {
+        type: 'bar',
+        data: {
+          labels: [],
+          datasets: [{
+            label: 'Unités en stock',
+            data: [],
+            backgroundColor: colors.blue,
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+      
+      priceChartInstance = new Chart(priceCtx, {
+        type: 'bar',
+        data: {
+          labels: [],
+          datasets: [{
+            label: 'Prix (DH)',
+            data: [],
+            backgroundColor: colors.green,
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+
+    function updateCharts(filteredProducts) {
+      const categoryData = filteredProducts.reduce((acc, product) => {
+        if (!acc[product.category]) {
+          acc[product.category] = 0;
+        }
+        acc[product.category]++;
+        return acc;
+      }, {});
+      
+      categoryChartInstance.data.labels = Object.keys(categoryData);
+      categoryChartInstance.data.datasets[0].data = Object.values(categoryData);
+      categoryChartInstance.update();
+      
+      const limitedProducts = filteredProducts.slice(0, 10);
+      
+      stockChartInstance.data.labels = limitedProducts.map(p => p.name);
+      stockChartInstance.data.datasets[0].data = limitedProducts.map(p => p.stock);
+      stockChartInstance.update();
+      
+      priceChartInstance.data.labels = limitedProducts.map(p => p.name);
+      priceChartInstance.data.datasets[0].data = limitedProducts.map(p => p.price);
+      priceChartInstance.update();
+    }
+
+    function switchTab(tabName) {
+      tabButtons.forEach(button => {
+        button.classList.remove('active', 'border-blue-500', 'text-blue-600');
+        button.classList.add('border-transparent', 'text-gray-500');
+      });
+      
+      tabContents.forEach(content => {
+        content.classList.add('hidden');
+      });
+      
+      currentTab = tabName;
+      
+      if (tabName === 'products') {
+        tabProducts.classList.add('active', 'border-blue-500', 'text-blue-600');
+        tabProducts.classList.remove('border-transparent', 'text-gray-500');
+        productsTab.classList.remove('hidden');
+      } else if (tabName === 'lowStock') {
+        tabLowStock.classList.add('active', 'border-blue-500', 'text-blue-600');
+        tabLowStock.classList.remove('border-transparent', 'text-gray-500');
+        lowStockTab.classList.remove('hidden');
+      } else if (tabName === 'dashboard') {
+        tabDashboard.classList.add('active', 'border-blue-500', 'text-blue-600');
+        tabDashboard.classList.remove('border-transparent', 'text-gray-500');
+        dashboardTab.classList.remove('hidden');
+        
+        setTimeout(() => {
+          categoryChartInstance.resize();
+          stockChartInstance.resize();
+          priceChartInstance.resize();
+        }, 10);
+      }
+    }
+
+    searchQuery.addEventListener('input', filterAndDisplayProducts);
+    
+    clearSearchBtn.addEventListener('click', () => {
+      searchQuery.value = '';
+      filterAndDisplayProducts();
+    });
+    
+    categorySelect.addEventListener('change', filterAndDisplayProducts);
+    
+    sortBySelect.addEventListener('change', filterAndDisplayProducts);
+    
+    sortDirectionBtn.addEventListener('click', function() {
+      sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+      
+      if (sortDirection === 'asc') {
+        this.innerHTML = '<i class="fas fa-sort-amount-up mr-2"></i> Tri Ascendant';
+      } else {
+        this.innerHTML = '<i class="fas fa-sort-amount-down mr-2"></i> Tri Descendant';
+      }
+      
+      filterAndDisplayProducts();
+    });
+    
+    tabProducts.addEventListener('click', () => switchTab('products'));
+    tabLowStock.addEventListener('click', () => switchTab('lowStock'));
+    tabDashboard.addEventListener('click', () => switchTab('dashboard'));
+
+    init();
+  </script>
+</body>
+</html>
